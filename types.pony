@@ -42,7 +42,8 @@ type ImmediateNoteEvent is (Pitch, GridXY val, ImmediateCommand)
 primitive Note
 type TimedCommand is Note
 
-type TimedGridEvent is (TimedEvent val, GridXY val, TimedCommand)
+// See timed_grid_event.pony.
+type TimedGridEventData is (TimedEvent val, GridXY val, TimedCommand)
 
 // Button events.
 primitive ClipArm

@@ -40,12 +40,12 @@ actor OSCRouter is ButtonEventSink
   be on_button_event(event: ButtonEvent val) =>
     match event
     | (TogglePress, "record", 0) =>
-      Debug.out("choose!")
+      // Debug.out("choose!")
       for i in Range(0, 4) do
         try (_buttons(i) as Chooseable tag).begin_choose() end
       end
     | (ClipArm, let index: USize) =>
-      Debug.out("choose ok!")
+      // Debug.out("choose ok!")
       for i in Range(0, 4) do
         try
           let c: Chooseable tag = _buttons(i) as Chooseable tag
@@ -60,13 +60,13 @@ actor OSCRouter is ButtonEventSink
     | (ToggleRelease, "record", 1) =>
       match _armed_clip
       | None =>
-        Debug.out("no clip chosen -- cancel record")
+        // Debug.out("no clip chosen -- cancel record")
         for i in Range(0, 4) do
           try (_buttons(i) as Chooseable tag).cancel_choose() end
         end
         try (_buttons(7) as ToggleButton tag).set_state(0) end
       | let clip_index: USize =>
-        Debug.out("record clip " + clip_index.string() + "!")
+        // Debug.out("record clip " + clip_index.string() + "!")
         match _pitch_mapper
         | (let p: PitchMapper tag) =>
           p.start_record(clip_index)
@@ -75,7 +75,7 @@ actor OSCRouter is ButtonEventSink
     | (ToggleRelease, "record", 0) =>
       match _armed_clip
       | let clip_index: USize =>
-        Debug.out("record clip " + clip_index.string() + "... stop!")
+        // Debug.out("record clip " + clip_index.string() + "... stop!")
         try (_buttons(clip_index) as Chooseable tag).stop_record() end
         match _pitch_mapper
         | let p: PitchMapper tag =>
@@ -83,11 +83,11 @@ actor OSCRouter is ButtonEventSink
         end
       end
     | (ClipSelect, let index: USize) =>
-      Debug.out("select clip " + index.string())
+      // Debug.out("select clip " + index.string())
       _selected_clips.set(index)
       push_selected_clips()
     | (ClipDeselect, let index: USize) =>
-      Debug.out("deselect clip " + index.string())
+      // Debug.out("deselect clip " + index.string())
       _selected_clips.unset(index)
       push_selected_clips()
     end
@@ -243,9 +243,6 @@ actor OSCRouter is ButtonEventSink
       else
         error
       end
-
-      // Debug.out("valid note event: (" + x.string() + "," + y.string() + ") -> " +
-      //   z.string())
     else
       return
     end

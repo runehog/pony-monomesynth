@@ -9,7 +9,7 @@ actor PitchMapper
   let _active_notes: Array[U32] ref
   var _clip_record_head: (None | ClipRecordHead tag)
   let _num_clips: USize = 4
-  let _clips: Array[(None | List[TimedGridEvent] val)]
+  let _clips: Array[(None | Array[TimedGridEvent] val)]
   var _selected_clips: Set[USize] val
 
   // The X axis plays major-scale notes.
@@ -24,7 +24,7 @@ actor PitchMapper
       _active_notes.push(0)
     end
     _clip_record_head = None
-    _clips = Array[(None | List[TimedGridEvent] val)](_num_clips)
+    _clips = Array[(None | Array[TimedGridEvent] val)](_num_clips)
     for i in Range(0, _num_clips) do
       _clips.push(None)
     end
@@ -71,7 +71,7 @@ actor PitchMapper
         try
           let clip = _clips(clip_index)
           ClipPlayHead(
-            clip as List[TimedGridEvent] val,
+            clip as Array[TimedGridEvent] val,
             xy._1.i32(),
             xy._2.i32(),
             this,
@@ -110,7 +110,7 @@ actor PitchMapper
       _clip_record_head = None
     end
 
-  be on_clip_recorded(clip_index: USize, events: List[TimedGridEvent] val) =>
+  be on_clip_recorded(clip_index: USize, events: Array[TimedGridEvent] val) =>
     try
       _clips.update(clip_index, events)
     end

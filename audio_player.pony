@@ -109,23 +109,23 @@ actor AudioPlayer
       let base_freq = pitch_to_freq(pitch)
 
       // Randomly perturb frequency.
-      let freq: F64 = base_freq + ((_random.real() * 3.0) - 1.5)
+      let freq: F64 = base_freq + ((_random.real() * 2.4) - 1.2)
       // Debug.out("freq: " + freq.string())
 
       // Build osc -> VCA chain and add to mixer.
       let osc = Oscillator(freq)
       let env_done: Promise[None] = Promise[None]
-      let env_vca: EnvVCA ref = EnvVCA(osc, 0.05, 5.0, env_done)
+      let env_vca: EnvVCA ref = EnvVCA(osc, 0.001, 0.333, env_done)
       let channel: MixerChannel ref = MixerChannel(env_vca)
       let channel_tag: MixerChannel tag = channel
-      let me: AudioPlayer tag = recover this end
 
       // On notification that this envelope has completed its cycle,
       // tear down the channel.
+      let this': AudioPlayer tag = recover this end
       env_done.next[None](
         recover
-          lambda(x: None val)(me, channel_tag) =>
-            me.remove_channel(channel_tag)
+          lambda(x: None val)(this', channel_tag) =>
+            this'.remove_channel(channel_tag)
           end
         end)
 

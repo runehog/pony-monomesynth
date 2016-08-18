@@ -1,5 +1,6 @@
 use "collections"
 use "debug"
+use "sort"
 use "time"
 
 actor ClipRecordHead
@@ -12,7 +13,7 @@ actor ClipRecordHead
 
   // Events are added to this list as note-offs arrive that correspond
   // to entries in _note_ons.
-  var _events: List[TimedGridEvent] iso
+  var _events: Array[TimedGridEvent] iso
 
   new create(pitch_mapper: PitchMapper tag, clip_index: USize) =>
     _pitch_mapper = pitch_mapper
@@ -21,7 +22,7 @@ actor ClipRecordHead
     for i in Range(0, 64) do
       _note_ons.push(None)
     end
-    _events = recover List[TimedGridEvent] end
+    _events = recover Array[TimedGridEvent] end
 
   fun ref linearize(xy: GridXY val): USize =>
     (xy._1 + (xy._2 * 8))
@@ -48,9 +49,11 @@ actor ClipRecordHead
           Debug.out("no start_time for " + i.string())
           return
         end
-        // Build the event and add it to the list.
+        // Build the event and add it to end of the array. The end result
+        // is an array sorted by note-off time -- we will re-sort it by
+        // note-on time in on_done().
         let event': TimedGridEvent val = recover
-          ((start_time, timestamp), event._1, Note)
+          TimedGridEvent(((start_time, timestamp), event._1, Note))
         end
         _events.push(event')
       else
@@ -58,9 +61,9 @@ actor ClipRecordHead
       end
     end
 
-  fun ref dump_events(events: List[TimedGridEvent] val) =>
+  fun ref dump_events(events: Array[TimedGridEvent] val) =>
     for entry in events.values() do
-      match entry
+      match entry()
       | (let t: TimedEvent val, let xy: GridXY val, let c: TimedCommand val) =>
         let command: String val = match c
         | Note => "Note"
@@ -73,9 +76,22 @@ actor ClipRecordHead
     end
 
   be on_done() =>
-    let events: List[TimedGridEvent] val = _events = recover List[TimedGridEvent] end
-    Debug.out("ClipRecordHead on_done")
-    dump_events(events)
+    let events: Array[TimedGridEvent] val = _events = recover Array[TimedGridEvent] end
+    let sorted_events: Array[TimedGridEvent] val = recover
+      let sorted_events' = Array[TimedGridEvent](events.size())
+      for e in events.values() do
+        sorted_events'.push(recover val TimedGridEvent(e()) end)
+      end
+      try
+        QuickSort[TimedGridEvent](sorted_events')
+      else
+        Debug.out("sort fail")
+        return
+      end
+      sorted_events'
+    end
+
+    // dump_events(sorted_events)
 
     // Send back to PitchMapper.
-    _pitch_mapper.on_clip_recorded(_clip_index, events)
+    _pitch_mapper.on_clip_recorded(_clip_index, sorted_events)
