@@ -9,7 +9,7 @@ actor ClipPlayHead
   let _start_time: U64
   let _pitch_mapper: PitchMapper
   let _timers: Timers
-  let eof: TimedGridEvent val = recover TimedGridEvent(((0, 0), (0, 0), Note)) end
+  let eof: TimedGridEvent = recover val TimedGridEvent(((0, 0), (0, 0), Note)) end
 
   new create(events: Array[TimedGridEvent] val,
              x_offset: I32,
@@ -63,7 +63,7 @@ actor ClipPlayHead
     let now = Time.nanos()
     let when = offset_time(note()._1._2) // NoteOff time.
     let this': ClipPlayHead tag = this
-    let notify: TimerNotify iso = recover object is TimerNotify
+    let notify = recover object is TimerNotify
       let head: ClipPlayHead tag = this'
       let note: TimedGridEvent val = note
       fun ref apply(timer: Timer, count: U64): Bool =>

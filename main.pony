@@ -37,7 +37,7 @@ actor Main
       let timers: Timers tag = Timers
       let router: OSCRouter tag = OSCRouter(timers, audio, our_port)
       audio.set_router(router)
-      let parser: OSCParser iso = recover OSCParser(router) end
+      let parser = recover OSCParser(router) end
       let sock = UDPSocket.ip4(auth, consume parser, "", our_port.string())
       router.set_sink(sock, auth)
     else

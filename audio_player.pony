@@ -53,7 +53,7 @@ actor AudioPlayer
 
   be add_buffer(buf: Pointer[F32] iso, ready: Pointer[U8] iso) =>
     let frame_count = _frame_count
-    let buf_array: OutBuffer iso = recover
+    let buf_array = recover
       OutBuffer.from_cstring(consume buf, frame_count)
     end
     _buffers.push(consume buf_array)
@@ -121,7 +121,7 @@ actor AudioPlayer
 
       // On notification that this envelope has completed its cycle,
       // tear down the channel.
-      let this': AudioPlayer tag = recover this end
+      let this' = recover tag this end
       env_done.next[None](
         recover
           lambda(x: None val)(this', channel_tag) =>

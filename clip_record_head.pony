@@ -52,7 +52,7 @@ actor ClipRecordHead
         // Build the event and add it to end of the array. The end result
         // is an array sorted by note-off time -- we will re-sort it by
         // note-on time in on_done().
-        let event': TimedGridEvent val = recover
+        let event' = recover val
           TimedGridEvent(((start_time, timestamp), event._1, Note))
         end
         _events.push(event')
@@ -77,10 +77,10 @@ actor ClipRecordHead
 
   be on_done() =>
     let events: Array[TimedGridEvent] val = _events = recover Array[TimedGridEvent] end
-    let sorted_events: Array[TimedGridEvent] val = recover
+    let sorted_events = recover val
       let sorted_events' = Array[TimedGridEvent](events.size())
       for e in events.values() do
-        sorted_events'.push(recover val TimedGridEvent(e()) end)
+        sorted_events'.push(TimedGridEvent(e()))
       end
       try
         QuickSort[TimedGridEvent](sorted_events')

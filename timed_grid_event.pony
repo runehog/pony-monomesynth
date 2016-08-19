@@ -1,7 +1,7 @@
 class val TimedGridEvent is Comparable[TimedGridEvent box]
   let _v: TimedGridEventData
 
-  new create(v: TimedGridEventData) =>
+  new val create(v: TimedGridEventData) =>
     _v = v
 
   fun apply(): TimedGridEventData => _v

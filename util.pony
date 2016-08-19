@@ -1,6 +1,6 @@
 primitive Util
   fun flatten(packet: Array[ByteSeq] val): Array[U8] iso^ =>
-    let result: Array[U8] iso = recover iso Array[U8] end
+    let result = recover Array[U8] end
     for a in packet.values() do
       match a
       | let str: String val =>

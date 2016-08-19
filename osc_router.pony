@@ -95,7 +95,7 @@ actor OSCRouter is ButtonEventSink
   fun ref push_selected_clips() =>
     match _pitch_mapper
     | let p: PitchMapper tag =>
-      let selected: Set[USize] iso = recover Set[USize] end
+      let selected = recover Set[USize] end
       for c in _selected_clips.values() do
         selected.set(c)
       end
@@ -134,19 +134,17 @@ actor OSCRouter is ButtonEventSink
     sock: UDPSocket tag, auth: AmbientAuth, our_port: I32) =>
     try
       // Request device list.
-      let serialosc_addr: IPAddress val = recover
-        DNS.ip4(auth, "localhost", "12002")(0)
-      end
+      let serialosc_addr = recover val DNS.ip4(auth, "localhost", "12002")(0) end
       let address: OSCAddress = OSCAddress("serialosc/list")
-      let args: Array[OSCData] val = recover
-        let a: Array[OSCData] iso = recover iso Array[OSCData] end
-        a.push(recover val "localhost" end)
+      let args = recover val
+        let a = recover Array[OSCData] end
+        a.push("localhost")
         a.push(our_port)
         consume a
       end
       let message: OSCMessage = OSCMessage(address, args)
-      let packet: Array[ByteSeq] val = recover message.binary() end
-      let flat: Array[U8] val = recover Util.flatten(packet) end
+      let packet = recover val message.binary() end
+      let flat = recover val Util.flatten(packet) end
       sock.write(flat, serialosc_addr)
     else
       Debug.out("request_device_list failed miserably")
