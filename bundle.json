@@ -1,6 +1,6 @@
 {
     "deps": [
-        { "type": "local-git", "local-path": "../pony-af" },
+        { "type": "github", "repo": "runehog/pony-af" },
         { "type": "github", "repo": "runehog/pony-opensoundcontrol" },
         { "type": "github", "repo": "theodus/pony-sort" }
     ]
