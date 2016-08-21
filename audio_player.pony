@@ -4,6 +4,8 @@ use "pony-opensoundcontrol"
 use "promises"
 use "random"
 
+use "pony-af"
+
 use "lib:portaudio_sink"
 use "lib:portaudio"
 
@@ -11,12 +13,11 @@ actor AudioPlayer
   """Streams audio, turning notes on and off as directed via events."""
 
   let _random: Random
-  let _buffer_count: USize
-  let _frame_count: USize
+  let _audio_settings: AudioSettings
   var _preroll: USize
   let _buffers: Array[OutBuffer]
   let _mixer: Mixer
-  let _pitch_map: Map[Pitch, List[EnvVCA ref]]
+  let _pitch_map: Map[Pitch, List[Array[EnvVCA ref]]]
   let _channels: MapIs[MixerChannel tag, MixerChannel ref]
   let _channel_xy: MapIs[MixerChannel tag, GridXY val]
   var _index: USize
@@ -24,23 +25,22 @@ actor AudioPlayer
 
   new create() =>
     _random = MT
-    _buffer_count = 4
-    _frame_count = 256
+    _audio_settings = AudioSettings(44100.0, 256, 4)
     _preroll = 0 // Will be filled in by preroll().
     _buffers = recover Array[OutBuffer] end
     _index = 0
     _router = None
 
     // Set up audio mixer.
-    _mixer = Mixer(_frame_count)
-    _pitch_map = Map[Pitch, List[EnvVCA ref]]
+    _mixer = Mixer(_audio_settings)
+    _pitch_map = Map[Pitch, List[Array[EnvVCA ref]]]
     _channels = MapIs[MixerChannel tag, MixerChannel ref]
     _channel_xy = MapIs[MixerChannel tag, GridXY val]
 
     // Set up audio stream.
     let open_result = @init_output_stream[I32](
-      _frame_count,
-      _buffer_count,
+      _audio_settings.frames_per_buffer,
+      _audio_settings.buffer_count,
       addressof this.add_buffer,
       addressof this.preroll,
       addressof this.produce,
@@ -52,9 +52,8 @@ actor AudioPlayer
     _router = router
 
   be add_buffer(buf: Pointer[F32] iso, ready: Pointer[U8] iso) =>
-    let frame_count = _frame_count
     let buf_array = recover
-      OutBuffer.from_cstring(consume buf, frame_count)
+      OutBuffer.from_cstring(consume buf, _audio_settings.frames_per_buffer)
     end
     _buffers.push(consume buf_array)
 
@@ -113,10 +112,20 @@ actor AudioPlayer
       // Debug.out("freq: " + freq.string())
 
       // Build osc -> VCA chain and add to mixer.
-      let osc = Oscillator(freq)
+      // let freq_lfo_rate_env = EnvVCA(
+      //   _audio_settings, ConstantValue(1.0), freq, 3.0, freq * 2.0, 0.01, freq * 2.0, 15.0, base_freq * 16, None)
+      let freq_lfo_rate_env = EnvVCA(
+        _audio_settings, ConstantValue(1.0), freq * 1.888, 8.0, freq * 2.01, 2.0, freq * 1.98, 10.0, freq * 2.222, None)
+      let freq_lfo = SineOsc(_audio_settings, 0.000001
+        where scale = freq / 2.0, freq_mod = freq_lfo_rate_env)
+      let osc = SineOsc(_audio_settings, freq
+        where freq_mod = freq_lfo)
       let env_done: Promise[None] = Promise[None]
-      let env_vca: EnvVCA ref = EnvVCA(osc, 0.001, 0.333, env_done)
-      let channel: MixerChannel ref = MixerChannel(env_vca)
+      let amp_env = EnvVCA(
+        _audio_settings, osc, 0.0, 8.0, 1.0, 0.05, 1.0, 15.0, 0.0, env_done)
+      // let amp_env = EnvVCA(
+      //   _audio_settings, osc, 0.0, 0.001, 1.0, 0.05, 0.2, 1.5, 0.0, env_done)
+      let channel: MixerChannel ref = MixerChannel(amp_env)
       let channel_tag: MixerChannel tag = channel
 
       // On notification that this envelope has completed its cycle,
@@ -129,8 +138,9 @@ actor AudioPlayer
           end
         end)
 
-      // Add to pitch map. We'll trigger the release phase on note-off.
-      push_note(pitch, env_vca)
+      // Add to pitch map. We'll trigger the release phase for all of the
+      // listed envelopes on note-off.
+      push_note(pitch, [amp_env, freq_lfo_rate_env])
 
       // Add to channel map, for channel teardown.
       _channels.insert(channel_tag, channel)
@@ -144,22 +154,24 @@ actor AudioPlayer
 
   fun ref stop_note(pitch: Pitch) =>
     try
-      let env: EnvVCA ref = pop_note(pitch)
-      env.release()
+      let envs: Array[EnvVCA ref] = pop_note(pitch)
+      for env in envs.values() do
+        env.release()
+      end
     else
       Debug.out("stop_note blew up")
     end
 
-  fun ref push_note(pitch: U8, env_vca: EnvVCA ref) =>
+  fun ref push_note(pitch: U8, env_vcas: Array[EnvVCA ref]) =>
     try
-      _pitch_map(pitch).push(env_vca)
+      _pitch_map(pitch).push(env_vcas)
     else
-      let list = List[EnvVCA]
-      list.push(env_vca)
+      let list = List[Array[EnvVCA ref]]
+      list.push(env_vcas)
       _pitch_map.update(pitch, list)
     end
 
-  fun ref pop_note(pitch: U8): EnvVCA ? =>
+  fun ref pop_note(pitch: U8): Array[EnvVCA ref] ? =>
     _pitch_map(pitch).pop()
 
   be remove_channel(channel_tag: MixerChannel tag) =>

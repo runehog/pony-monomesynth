@@ -15,6 +15,9 @@ actor PitchMapper
   // The X axis plays major-scale notes.
   let x_steps: Array[USize] = [0, 2, 4, 5, 7, 9, 11, 12]
 
+  // // The X axis plays fourths.
+  // let x_steps: Array[USize] = [0, 3, 6, 9, 12, 15, 18, 21]
+
   new create(player: AudioPlayer tag, leds: LEDs tag, timers: Timers tag) =>
     _player = player
     _leds = leds
